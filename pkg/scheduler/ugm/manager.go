@@ -149,13 +149,16 @@ func (m *Manager) DecreaseTrackedResource(queuePath, applicationID string, usage
 
 	// get the group now as the decrease might remove the app from the user if removeApp is true
 	appGroup := userTracker.getGroupForApp(applicationID)
-	log.Log(log.SchedUGM).Debug("Decreasing resource usage for user",
+	log.Log(log.SchedUGM).Info("Decreasing resource usage for user",
 		zap.String("user", user.User),
 		zap.String("queue path", queuePath),
 		zap.String("application", applicationID),
 		zap.String("group", appGroup),
 		zap.Stringer("resource", usage),
-		zap.Bool("removeApp", removeApp))
+		zap.Bool("removeApp", removeApp),
+		zap.String("queueTracker.maxResources", userTracker.queueTracker.maxResources.String()),
+		zap.Uint64("queueTracker.maxRunningApps", userTracker.queueTracker.maxRunningApps),
+	)
 	if userTracker.decreaseTrackedResource(queuePath, applicationID, usage, removeApp) {
 		log.Log(log.SchedUGM).Info("Removing user from manager",
 			zap.String("user", user.User))
@@ -174,12 +177,14 @@ func (m *Manager) DecreaseTrackedResource(queuePath, applicationID string, usage
 			zap.String("group", appGroup))
 		return
 	}
-	log.Log(log.SchedUGM).Debug("Decreasing resource usage for group",
+	log.Log(log.SchedUGM).Info("Decreasing resource usage for group",
 		zap.String("group", appGroup),
 		zap.String("queue path", queuePath),
 		zap.String("application", applicationID),
 		zap.Stringer("resource", usage),
-		zap.Bool("removeApp", removeApp))
+		zap.Bool("removeApp", removeApp),
+		zap.String("queueTracker.maxResources", groupTracker.queueTracker.maxResources.String()),
+		zap.Uint64("queueTracker.maxRunningApps", groupTracker.queueTracker.maxRunningApps))
 	if groupTracker.decreaseTrackedResource(queuePath, applicationID, usage, removeApp) {
 		log.Log(log.SchedUGM).Info("Removing group from manager",
 			zap.String("group", appGroup),

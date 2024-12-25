@@ -19,6 +19,8 @@
 package ugm
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 
@@ -154,8 +156,11 @@ func (qt *QueueTracker) decreaseTrackedResource(hierarchy []string, applicationI
 			delete(qt.childQueueTrackers, childName)
 		}
 	}
+	fmt.Println("qt.resourceUsage before sub: ", qt.resourceUsage)
 	qt.resourceUsage.SubFrom(usage)
+	fmt.Println("qt.resourceUsage after sub: ", qt.resourceUsage)
 	qt.resourceUsage.Prune()
+	fmt.Println("qt.resourceUsage after prune: ", qt.resourceUsage)
 	if removeApp {
 		log.Log(log.SchedUGM).Debug("Removed application from running applications",
 			zap.String("application", applicationID),
@@ -173,6 +178,11 @@ func (qt *QueueTracker) decreaseTrackedResource(hierarchy []string, applicationI
 	// Determine if the queue tracker should be removed
 	removeQT := len(qt.childQueueTrackers) == 0 && len(qt.runningApplications) == 0 && resources.IsZero(qt.resourceUsage) &&
 		qt.maxRunningApps == 0 && resources.IsZero(qt.maxResources)
+	fmt.Println(len(qt.childQueueTrackers))
+	fmt.Println(len(qt.runningApplications))
+	fmt.Println(resources.IsZero(qt.resourceUsage))
+	fmt.Println(qt.maxRunningApps == 0)
+	fmt.Println(resources.IsZero(qt.maxResources))
 	log.Log(log.SchedUGM).Debug("Remove queue tracker",
 		zap.String("queue path ", qt.queuePath),
 		zap.Bool("remove QT", removeQT))
