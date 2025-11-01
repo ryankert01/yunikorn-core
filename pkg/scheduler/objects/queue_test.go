@@ -351,13 +351,15 @@ const (
 )
 
 func concatQueueResourceMetric(metricNames, metricVals []string) string {
-	var out string
+	var builder strings.Builder
 	for i, metricName := range metricNames {
-		out = out + fmt.Sprintf(QueueResourceMetricHelp, metricName) + "\n"
-		out = out + fmt.Sprintf(QueueResourceMetricType, metricName) + "\n"
-		out += strings.TrimLeft(metricVals[i], "\n")
+		builder.WriteString(fmt.Sprintf(QueueResourceMetricHelp, metricName))
+		builder.WriteString("\n")
+		builder.WriteString(fmt.Sprintf(QueueResourceMetricType, metricName))
+		builder.WriteString("\n")
+		builder.WriteString(strings.TrimLeft(metricVals[i], "\n"))
 	}
-	return out
+	return builder.String()
 }
 
 func TestGetChildQueueInfo(t *testing.T) {
@@ -2874,5 +2876,43 @@ func TestQueue_allocatedResFits_Other(t *testing.T) {
 			assert.NilError(t, err, "failed to create basic resource: diff")
 			assert.Equal(t, leaf.allocatedResFits(change), tt.want, "allocatedResFits incorrect state returned")
 		})
+	}
+}
+
+// BenchmarkConcatQueueResourceMetric benchmarks the performance of the optimized string concatenation
+func BenchmarkConcatQueueResourceMetric(b *testing.B) {
+	metricNames := []string{"yunikorn_queue_resource"}
+	metricVals := []string{`
+yunikorn_queue_resource{queue="root",resource="memory",state="pending"} 100
+yunikorn_queue_resource{queue="root",resource="vcores",state="pending"} 10
+yunikorn_queue_resource{queue="root",resource="apps",state="maxRunningApps"} 0
+yunikorn_queue_resource{queue="root.leaf",resource="memory",state="pending"} 100
+yunikorn_queue_resource{queue="root.leaf",resource="vcores",state="pending"} 10
+yunikorn_queue_resource{queue="root.leaf",resource="apps",state="maxRunningApps"} 0
+`}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = concatQueueResourceMetric(metricNames, metricVals)
+	}
+}
+
+// BenchmarkConcatQueueResourceMetricLarge benchmarks with multiple metrics
+func BenchmarkConcatQueueResourceMetricLarge(b *testing.B) {
+	// Simulate a larger workload with 10 metrics
+	metricNames := make([]string, 10)
+	metricVals := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		metricNames[i] = fmt.Sprintf("yunikorn_queue_resource_%d", i)
+		metricVals[i] = `
+yunikorn_queue_resource{queue="root",resource="memory",state="pending"} 100
+yunikorn_queue_resource{queue="root",resource="vcores",state="pending"} 10
+yunikorn_queue_resource{queue="root",resource="apps",state="maxRunningApps"} 0
+`
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = concatQueueResourceMetric(metricNames, metricVals)
 	}
 }
